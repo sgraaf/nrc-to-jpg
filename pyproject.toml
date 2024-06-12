@@ -26,6 +26,7 @@ classifiers = [
 requires-python = "~=3.8"
 dependencies = [
     "click",
+    "httpx",
 ]
 dynamic = ["version", "description"]
 

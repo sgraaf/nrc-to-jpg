@@ -16,5 +16,5 @@
     "package_name": "nrc_to_jpg",
     "short_description": "Save the NRC front page to a JPG image.",
     "use_rich": false,
-    "version": "2024.06.12"
+    "version": "2024.6.0"
 }
