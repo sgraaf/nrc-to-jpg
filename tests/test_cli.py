@@ -12,7 +12,7 @@ from nrc_to_jpg.constants import DEFAULT_OUTPUT_FILE, DEFAULT_OUTPUT_FILE_TEMPLA
 from .utils import run_command_in_shell
 
 
-@pytest.fixture()
+@pytest.fixture
 def runner() -> CliRunner:
     return CliRunner()
 

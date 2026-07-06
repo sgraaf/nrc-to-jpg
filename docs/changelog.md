@@ -4,4 +4,4 @@
 
 ### Changes
 
--   Initial release of nrc-to-jpg
+- Initial release of nrc-to-jpg
