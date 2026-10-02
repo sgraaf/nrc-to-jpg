@@ -1,6 +1,5 @@
-from datetime import date
-from importlib import import_module
-from importlib.metadata import version
+import datetime as dt
+from importlib import import_module, metadata
 from pathlib import Path
 
 import pytest
@@ -12,9 +11,16 @@ from nrc_to_jpg.constants import DEFAULT_OUTPUT_FILE, DEFAULT_OUTPUT_FILE_TEMPLA
 from .utils import run_command_in_shell
 
 
-@pytest.fixture()
+@pytest.fixture
 def runner() -> CliRunner:
     return CliRunner()
+
+
+@pytest.fixture
+def tmp_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Change the current working directory to a temporary directory."""
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
 
 
 def test_main_module() -> None:
@@ -36,68 +42,67 @@ def test_run_as_executable() -> None:
 
 def test_version_runner(runner: CliRunner) -> None:
     """Does `--version` display the correct version?"""
+    version = metadata.version("nrc-to-jpg")
     result = runner.invoke(cli, ["--version"])
     assert result.exit_code == 0
-    assert result.output == f"cli, version {version('nrc-to-jpg')}\n"
+    assert result.output == f"cli, version {version}\n"
 
 
+@pytest.mark.usefixtures("tmp_cwd")
 def test_default(runner: CliRunner) -> None:
-    with runner.isolated_filesystem():
-        result = runner.invoke(cli)
-        assert result.exit_code == 0
-        assert DEFAULT_OUTPUT_FILE.is_file()
+    result = runner.invoke(cli)
+    assert result.exit_code == 0
+    assert DEFAULT_OUTPUT_FILE.is_file()
 
 
+@pytest.mark.usefixtures("tmp_cwd")
 def test_date(runner: CliRunner) -> None:
-    with runner.isolated_filesystem():
-        date_ = date(2001, 9, 12)
-        result = runner.invoke(cli, ["--date", date_.isoformat()])
-        assert result.exit_code == 0
-        assert Path(
-            DEFAULT_OUTPUT_FILE_TEMPLATE.format(
-                year=date_.year, month=date_.month, day=date_.day
-            )
-        ).is_file()
-
-
-def test_sunday(runner: CliRunner) -> None:
-    with runner.isolated_filesystem():
-        date_ = date(2024, 6, 9)
-        result = runner.invoke(cli, ["--date", date_.isoformat()])
-        assert result.exit_code == 1
-        assert result.output.startswith(
-            "You are trying to get the newspaper for a Sunday."
+    date_ = dt.date(2001, 9, 12)
+    result = runner.invoke(cli, ["--date", date_.isoformat()])
+    assert result.exit_code == 0
+    assert Path(
+        DEFAULT_OUTPUT_FILE_TEMPLATE.format(
+            year=date_.year, month=date_.month, day=date_.day
         )
+    ).is_file()
 
 
+@pytest.mark.usefixtures("tmp_cwd")
+def test_sunday(runner: CliRunner) -> None:
+    date_ = dt.date(2024, 6, 9)
+    result = runner.invoke(cli, ["--date", date_.isoformat()])
+    assert result.exit_code == 1
+    assert result.output.startswith("You are trying to get the newspaper for a Sunday.")
+
+
+@pytest.mark.usefixtures("tmp_cwd")
 def test_page_number(runner: CliRunner) -> None:
-    with runner.isolated_filesystem():
-        page_number = 2
-        result = runner.invoke(cli, ["--page-number", str(page_number)])
-        assert result.exit_code == 0
-        assert DEFAULT_OUTPUT_FILE.is_file()
+    page_number = 2
+    result = runner.invoke(cli, ["--page-number", str(page_number)])
+    assert result.exit_code == 0
+    assert DEFAULT_OUTPUT_FILE.is_file()
 
 
+@pytest.mark.usefixtures("tmp_cwd")
 def test_odd_non_first_page_number(runner: CliRunner) -> None:
-    with runner.isolated_filesystem():
-        page_number = 3
-        result = runner.invoke(cli, ["--page-number", str(page_number)])
-        assert result.exit_code == 0
-        assert not DEFAULT_OUTPUT_FILE.is_file()
-        assert result.output == f"Could not find page {page_number}.\n"
+    page_number = 3
+    result = runner.invoke(cli, ["--page-number", str(page_number)])
+    assert result.exit_code == 0
+    assert not DEFAULT_OUTPUT_FILE.is_file()
+    assert result.output == f"Could not find page {page_number}.\n"
 
 
+@pytest.mark.usefixtures("tmp_cwd")
 def test_output_template(runner: CliRunner) -> None:
-    with runner.isolated_filesystem():
-        output_template = "NRC.jpg"
-        result = runner.invoke(cli, ["--output", output_template])
-        assert result.exit_code == 0
-        assert Path(output_template).is_file()
+    output_template = "NRC.jpg"
+    result = runner.invoke(cli, ["--output", output_template])
+    assert result.exit_code == 0
+    assert Path(output_template).is_file()
 
 
+@pytest.mark.usefixtures("tmp_cwd")
 def test_output_template_with_invalid_field(runner: CliRunner) -> None:
-    with runner.isolated_filesystem():
-        output_template = "NRC_{invalid}.jpg"
-        result = runner.invoke(cli, ["--output", output_template])
-        assert result.exit_code == 2
-        assert "Error: Invalid value for '-o' / '--output': " in result.output
+    output_template = "NRC_{invalid}.jpg"
+    result = runner.invoke(cli, ["--output", output_template])
+    assert result.exit_code == 2
+    assert "Error: Invalid value for '-o' / '--output': " in result.output

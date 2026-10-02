@@ -1,36 +1,42 @@
-name: Test
+name: "Test"
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/test.yml"
-      - "**.py"
   push:
-    paths:
-      - ".github/workflows/test.yml"
-      - "**.py"
+    branches:
+      - main
+    tags:
+      # Test on any tag starting with the format "YYYY.N.N"
+      - "[0-9][0-9][0-9][0-9].[0-9]+.[0-9]+*"
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python_version:
-          - "3.8"
-          - "3.9"
-          - "3.10"
+        python-version:
           - "3.11"
           - "3.12"
+          - "3.13"
+          - "3.14"
 
     steps:
-      - name: Checkout the repo
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v7
 
-      - name: Install Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
         with:
-          python-version: ${{ matrix.python_version }}
-          cache: "pip"
+          enable-cache: true
 
-      - name: Run nox "tests" session
-        run: pipx run nox --error-on-missing-interpreters --session tests-${{ matrix.python_version }}
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --group tests
+
+      - name: Run tests
+        run: uv run pytest

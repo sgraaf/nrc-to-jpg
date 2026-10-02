@@ -1,13 +1,14 @@
 """Utility functions for testing nrc-to-jpg."""
 
 import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass
 from os import PathLike
-from typing import Any, Sequence, Union
+from typing import Any
 
 # copied from `typeshed`
-StrOrBytesPath = Union[str, bytes, PathLike]
-Command = Union[StrOrBytesPath, Sequence[StrOrBytesPath]]
+StrOrBytesPath = str | bytes | PathLike[str] | PathLike[bytes]
+Command = StrOrBytesPath | Sequence[StrOrBytesPath]
 
 
 @dataclass
@@ -24,9 +25,9 @@ class CommandResult:
 
 def run_command_in_shell(command: Command, **kwargs: Any) -> CommandResult:
     """Execute a command through the shell, capturing the exit code and output."""
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S602
         command,
-        shell=True,  # noqa: S602
+        shell=True,
         capture_output=True,
         check=False,
         **kwargs,

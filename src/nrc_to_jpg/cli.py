@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import datetime as dt
+from importlib import metadata
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import click
-from httpx import Client
+import httpx2
 
-from . import __version__
 from .constants import (
     ALLOWED_OUTPUT_FILE_TEMPLATE_FIELDS,
     DATA_URL_TEMPLATE,
@@ -19,8 +18,7 @@ from .constants import (
 )
 from .utils import get_format_fields, join_wrap
 
-if TYPE_CHECKING:
-    from datetime import date
+__version__ = metadata.version("nrc-to-jpg")
 
 
 class FormatStr(click.ParamType):
@@ -28,9 +26,9 @@ class FormatStr(click.ParamType):
 
     name = "format-str"
 
-    def __init__(self, allowed_fields: set[str], *args, **kwargs) -> None:
+    def __init__(self, allowed_fields: set[str]) -> None:
         """Initialize a new `FormatStr` instance with a set of allowed fields."""
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.allowed_fields = allowed_fields
 
     def convert(
@@ -40,7 +38,7 @@ class FormatStr(click.ParamType):
         fields = get_format_fields(value)
         if not fields <= self.allowed_fields:
             self.fail(
-                f"`{value}` contains invalid format fields: {join_wrap(fields - self.allowed_fields, ', ', '`')}",
+                f"`{value}` contains invalid format fields: {join_wrap(sorted(fields - self.allowed_fields), ', ', '`')}",
                 param,
                 ctx,
             )
@@ -50,13 +48,13 @@ class FormatStr(click.ParamType):
 @click.command(
     context_settings={"help_option_names": ["-h", "--help"], "show_default": True}
 )
-@click.version_option(__version__, "-v", "--version")
 @click.option(
     "-d",
     "--date",
     "date_",
     type=click.DateTime(),
     default=DEFAULT_DATE.isoformat(),
+    show_default="today",
     help="The date to save that day's front page of.",
 )
 @click.option(
@@ -64,7 +62,7 @@ class FormatStr(click.ParamType):
     "--page-number",
     type=int,
     default=DEFAULT_PAGE_NUMBER,
-    help="The page number to .",
+    help="The page number to save.",
 )
 @click.option(
     "-o",
@@ -72,15 +70,16 @@ class FormatStr(click.ParamType):
     "output_template",
     type=FormatStr(ALLOWED_OUTPUT_FILE_TEMPLATE_FIELDS),
     default=DEFAULT_OUTPUT_FILE_TEMPLATE,
-    help=f"Output file name template. Allowed fields: {join_wrap(ALLOWED_OUTPUT_FILE_TEMPLATE_FIELDS, ', ', '`')}",
+    help=f"Output file name template. Allowed fields: {join_wrap(sorted(ALLOWED_OUTPUT_FILE_TEMPLATE_FIELDS), ', ', '`')}",
 )
+@click.version_option(__version__, "-v", "--version")
 def cli(
-    date_: date = DEFAULT_DATE,
+    date_: dt.date = DEFAULT_DATE,
     page_number: int = DEFAULT_PAGE_NUMBER,
     output_template: str = DEFAULT_OUTPUT_FILE_TEMPLATE,
 ) -> None:
     """Save the NRC front page to a JPG image."""
-    date_ = date_.date() if isinstance(date_, datetime) else date_
+    date_ = date_.date() if isinstance(date_, dt.datetime) else date_
     if date_.weekday() == 6:  # noqa: PLR2004
         click.echo(
             "You are trying to get the newspaper for a Sunday. Generally speaking, there is no new paper on Sundays, and this will most likely result in an HTTP error."
@@ -92,7 +91,7 @@ def cli(
         )
     )
 
-    with Client() as client:
+    with httpx2.Client() as client:
         data_r = client.get(
             DATA_URL_TEMPLATE.format(year=date_.year, month=date_.month, day=date_.day)
         )
@@ -101,7 +100,8 @@ def cli(
         data = data_r.json()
 
         for page in data["pages"]:
-            if page["number"] == page_number:
+            # spreads are identified by their first (single) page number
+            if page["single_page_numbers"][0] == page_number:
                 page_url = page["fullscreen_url_orig"]
                 with client.stream("GET", page_url) as page_r:
                     page_r.raise_for_status()

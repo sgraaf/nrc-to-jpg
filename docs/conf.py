@@ -1,21 +1,19 @@
 """Sphinx configuration."""
 
-from __future__ import annotations
-
-import sys
-from pathlib import Path
+from importlib import metadata
 from typing import Any
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import nrc_to_jpg
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "nrc-to-jpg"
-copyright = "2024, Steven van de Graaf"
 author = "Steven van de Graaf"
-release = nrc_to_jpg.__version__
+copyright = f"2024, {author}"  # noqa: A001
+
+# The full version, including alpha/beta/rc tags.
+release = metadata.version("nrc-to-jpg")
+# The short X.Y version.
+version = release.rsplit(".", 1)[0]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -23,7 +21,6 @@ release = nrc_to_jpg.__version__
 extensions = [
     "myst_parser",
     "sphinx.ext.autodoc",
-    "sphinx.ext.autodoc.typehints",
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
@@ -43,6 +40,10 @@ intersphinx_mapping = {
 }
 
 # move type hints into the description block, instead of the signature
+autodoc_member_order = "bysource"
+autodoc_default_options = {
+    "show-inheritance": True,
+}
 autodoc_typehints = "description"
 autodoc_typehints_description_target = "documented"
 
