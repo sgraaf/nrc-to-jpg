@@ -10,7 +10,13 @@ The **third number** is for emergencies when we need to start branches for older
 
 ## [Unreleased](https://github.com/sgraaf/nrc-to-jpg/compare/2026.1.0...HEAD)
 
+### Added
+
+- Support for Python 3.15.
+
 ## [2026.1.0](https://github.com/sgraaf/nrc-to-jpg/compare/2024.6.0...2026.1.0) - 2026-10-02
+
+This release modernizes nrc-to-jpg for current Python versions. It now requires Python 3.11 or newer and supports up to Python 3.14. It also fixes `--page-number` saving the wrong page when the newspaper contains spreads. Note that the default output file name has changed to `NRC-front-page_YYYY-MM-DD.jpg`.
 
 ### Added
 
